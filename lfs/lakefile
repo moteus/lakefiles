@@ -1,0 +1,47 @@
+PROJECT = 'lfs'
+
+if LUA_VER == '5.2' then
+  LUA_NEED = 'lua52'
+  LUA_DIR  = ENV.LUA_DIR_5_2 or ENV.LUA_DIR
+  LUA_RUNNER = 'lua52'
+else
+  LUA_NEED = 'lua'
+  LUA_DIR  = ENV.LUA_DIR
+  LUA_RUNNER = 'lua'
+end
+
+DYNAMIC  = DYNAMIC or false
+
+INSTALL_DIR = INSTALL_DIR or J(LUA_DIR,'libs',PROJECT)
+
+lfs = c.shared{PROJECT, 
+  base     = 'src',
+  src      = '*.c',
+  needs    = LUA_NEED,
+  dynamic  = DYNAMIC,
+  strip    = true,
+}
+
+target('build', lfs)
+
+install = target('install', {
+  file.group{odir=J(INSTALL_DIR, 'share');src = lfs };
+  file.group{odir=J(INSTALL_DIR, 'test'); src = J('tests', '*.*')};
+  file.group{odir=J(INSTALL_DIR, 'doc');  src = J('doc', '*.*'); recurse=true};
+})
+
+local function run(file, cwd)
+  print()
+  print("run " .. file)
+  if not TESTING then
+    if cwd then lake.chdir(cwd) end
+    os.execute( LUA_RUNNER .. ' ' .. file )
+    if cwd then lake.chdir("<") end
+    print()
+  end
+end
+
+target('test', install, function()
+  local test_dir = J(INSTALL_DIR,'test')
+  run(J(test_dir,'test.lua'), test_dir)
+end)
