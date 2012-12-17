@@ -1,0 +1,34 @@
+DYNAMIC = DYNAMIC or false
+
+local CONFIG = {'http_parser',
+  -- base = '.',
+  src = {'http_parser.c','url_parser.c'};
+  dynamic = DYNAMIC;
+  strip = true,
+  defines = {
+    "WINDOWS";
+    "_WINDLL";
+    "_USRDLL";
+    "HTTP_PARSER_STRICT=0";
+  };
+  libflags = IF(MSVC, {
+    '/EXPORT:http_parser_init',
+    '/EXPORT:http_parser_execute',
+    '/EXPORT:http_should_keep_alive',
+    '/EXPORT:http_method_str',
+    '/EXPORT:http_errno_name',
+    '/EXPORT:http_errno_description',
+    '/EXPORT:http_parser_parse_url',
+    '/EXPORT:http_parser_pause',
+    '/EXPORT:http_body_is_final'
+  });
+}
+
+parser_dll = c.shared(CONFIG)
+
+parser_lib = c.library(CONFIG)
+
+target('dll', parser_dll)
+
+target('lib', parser_lib)
+
