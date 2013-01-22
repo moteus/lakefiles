@@ -1,0 +1,56 @@
+J = J or path.join
+
+IF = IF or lake.choose or choose
+
+as_bool = function (v,d)
+  if v == nil then return not not d end
+  local n = tonumber(v)
+  if n == 0 then return false end
+  if n then return true end
+  return false
+end
+
+DYNAMIC = as_bool(DYNAMIC, false)
+
+shared_lib = c.shared{'sqlite3',
+  base = '.',
+  src = 'sqlite3.c';
+  dynamic = DYNAMIC;
+  strip = true,
+  defines = {
+    "WINDOWS";
+    "_WINDLL";
+    "_USRDLL";
+    "NDEBUG";
+    "SQLITE_ENABLE_RTREE";
+    "SQLITE_ENABLE_COLUMN_METADATA";
+    IF(MSVC,"SQLITE_API=__declspec(dllexport)");
+  };
+  libflags = IF(MSVC, '/BASE:0x66000000');
+}
+
+static_lib = c.library{'sqlite3',
+  base = '.',
+  src = 'sqlite3.c';
+  dynamic = DYNAMIC;
+  strip = true,
+  defines = {
+    "WINDOWS";
+    "NDEBUG";
+    "SQLITE_ENABLE_RTREE";
+    "SQLITE_ENABLE_COLUMN_METADATA";
+  };
+}
+
+target('dll', shared_lib)
+
+target('lib', static_lib)
+
+shell = c.program{'sqlite3',
+  base = '.';
+  src = 'shell.c';
+  deps = static_lib;
+  dynamic = DYNAMIC;
+}
+
+target('shell', shell)
