@@ -22,10 +22,15 @@ BNUILD_PARAMS = {PROJECT,
   deps = res;
 }
 
-static_lib = c.library(BNUILD_PARAMS)
 
-BNUILD_PARAMS.defines = L( BNUILD_PARAMS.defines,"_WINDLL", "_USRDLL" )
-shared_lib = c.shared(BNUILD_PARAMS)
+static_lib = clone(BNUILD_PARAMS)
+static_lib.deps = nil
+static_lib.compile_deps = nil
+static_lib = c.library(static_lib)
+
+shared_lib = clone(BNUILD_PARAMS)
+shared_lib.defines = L( BNUILD_PARAMS.defines,"_WINDLL", "_USRDLL" )
+shared_lib = c.shared(shared_lib)
 
 target('dll', shared_lib)
 target('lib', static_lib)
