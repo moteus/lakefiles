@@ -1,0 +1,228 @@
+diff -cr src/include/config.h src.patched/include/config.h
+*** src/include/config.h	Sun Aug  7 17:49:04 2011
+--- src.patched/include/config.h	Wed Jan 30 08:41:34 2013
+***************
+*** 27,33 ****
+  #undef DOUBLE_SLASH_IS_DISTINCT_ROOT
+  
+  /* Define as good substitute value for EILSEQ. */
+! #undef EILSEQ
+  
+  /* Define to 1 to enable a few rarely used encodings. */
+  #undef ENABLE_EXTRA
+--- 27,33 ----
+  #undef DOUBLE_SLASH_IS_DISTINCT_ROOT
+  
+  /* Define as good substitute value for EILSEQ. */
+! // #undef EILSEQ
+  
+  /* Define to 1 to enable a few rarely used encodings. */
+  #undef ENABLE_EXTRA
+diff -cr src/include/iconv.h src.patched/include/iconv.h
+*** src/include/iconv.h	Sun Aug  7 17:49:04 2011
+--- src.patched/include/iconv.h	Wed Jan 30 08:41:34 2013
+***************
+*** 23,34 ****
+  
+  #define _LIBICONV_VERSION 0x010E    /* version number: (major<<8) + minor */
+  
+! #if @HAVE_VISIBILITY@ && BUILDING_LIBICONV
+! #define LIBICONV_DLL_EXPORTED __attribute__((__visibility__("default")))
+! #else
+  #define LIBICONV_DLL_EXPORTED
+  #endif
+! extern LIBICONV_DLL_EXPORTED @DLL_VARIABLE@ int _libiconv_version; /* Likewise */
+  
+  /* We would like to #include any system header file which could define
+     iconv_t, 1. in order to eliminate the risk that the user gets compilation
+--- 23,36 ----
+  
+  #define _LIBICONV_VERSION 0x010E    /* version number: (major<<8) + minor */
+  
+! #if BUILDING_LIBICONV
+! #define LIBICONV_DLL_EXPORTED __declspec(dllexport)
+! #elif USING_STATIC_LIBICONV
+  #define LIBICONV_DLL_EXPORTED
++ #else
++ #define LIBICONV_DLL_EXPORTED __declspec(dllimport)
+  #endif
+! extern LIBICONV_DLL_EXPORTED int _libiconv_version; /* Likewise */
+  
+  /* We would like to #include any system header file which could define
+     iconv_t, 1. in order to eliminate the risk that the user gets compilation
+***************
+*** 86,92 ****
+  #ifndef LIBICONV_PLUG
+  #define iconv libiconv
+  #endif
+! extern LIBICONV_DLL_EXPORTED size_t iconv (iconv_t cd, @ICONV_CONST@ char* * inbuf, size_t *inbytesleft, char* * outbuf, size_t *outbytesleft);
+  
+  /* Frees resources allocated for conversion descriptor ‘cd’. */
+  #ifndef LIBICONV_PLUG
+--- 88,94 ----
+  #ifndef LIBICONV_PLUG
+  #define iconv libiconv
+  #endif
+! extern LIBICONV_DLL_EXPORTED size_t iconv (iconv_t cd, const char* * inbuf, size_t *inbytesleft, char* * outbuf, size_t *outbytesleft);
+  
+  /* Frees resources allocated for conversion descriptor ‘cd’. */
+  #ifndef LIBICONV_PLUG
+***************
+*** 104,111 ****
+  
+  /* Nonstandard extensions. */
+  
+! #if @USE_MBSTATE_T@
+! #if @BROKEN_WCHAR_H@
+  /* Tru64 with Desktop Toolkit C has a bug: <stdio.h> must be included before
+     <wchar.h>.
+     BSD/OS 4.0.1 has a bug: <stddef.h>, <stdio.h> and <time.h> must be
+--- 106,113 ----
+  
+  /* Nonstandard extensions. */
+  
+! #if USE_MBSTATE_T
+! #if BROKEN_WCHAR_H
+  /* Tru64 with Desktop Toolkit C has a bug: <stdio.h> must be included before
+     <wchar.h>.
+     BSD/OS 4.0.1 has a bug: <stddef.h>, <stdio.h> and <time.h> must be
+***************
+*** 125,131 ****
+     A pointer to such an object can be used as an iconv_t. */
+  typedef struct {
+    void* dummy1[28];
+! #if @USE_MBSTATE_T@
+    mbstate_t dummy2;
+  #endif
+  } iconv_allocation_t;
+--- 127,133 ----
+     A pointer to such an object can be used as an iconv_t. */
+  typedef struct {
+    void* dummy1[28];
+! #if USE_MBSTATE_T
+    mbstate_t dummy2;
+  #endif
+  } iconv_allocation_t;
+***************
+*** 172,178 ****
+                                           void* callback_arg),
+                void* callback_arg,
+                void* data);
+! #if @HAVE_WCHAR_T@
+  /* Fallback function.  Invoked when a number of bytes could not be converted to
+     a wide character.  This function should process all bytes from inbuf and may
+     produce replacement wide characters by calling the write_replacement
+--- 174,180 ----
+                                           void* callback_arg),
+                void* callback_arg,
+                void* data);
+! #if HAVE_WCHAR_T
+  /* Fallback function.  Invoked when a number of bytes could not be converted to
+     a wide character.  This function should process all bytes from inbuf and may
+     produce replacement wide characters by calling the write_replacement
+diff -cr src/libiconv/iconv.c src.patched/libiconv/iconv.c
+*** src/libiconv/iconv.c	Sat Jan 29 17:28:09 2011
+--- src.patched/libiconv/iconv.c	Wed Jan 30 09:01:47 2013
+***************
+*** 244,250 ****
+  }
+  
+  size_t iconv (iconv_t icd,
+!               ICONV_CONST char* * inbuf, size_t *inbytesleft,
+                char* * outbuf, size_t *outbytesleft)
+  {
+    conv_t cd = (conv_t) icd;
+--- 244,250 ----
+  }
+  
+  size_t iconv (iconv_t icd,
+!               const char* * inbuf, size_t *inbytesleft,
+                char* * outbuf, size_t *outbytesleft)
+  {
+    conv_t cd = (conv_t) icd;
+***************
+*** 424,430 ****
+          namesbuf[i++] = aliasbuf[j++].name;
+        while (j < num_aliases && aliasbuf[j].encoding_index == ei);
+        if (i > 1)
+!         qsort(namesbuf, i, sizeof(const char *), compare_by_name);
+        /* Call the callback. */
+        if (do_one(i,namesbuf,data))
+          break;
+--- 424,430 ----
+          namesbuf[i++] = aliasbuf[j++].name;
+        while (j < num_aliases && aliasbuf[j].encoding_index == ei);
+        if (i > 1)
+!         qsort((void*)namesbuf, i, sizeof(const char *), compare_by_name);
+        /* Call the callback. */
+        if (do_one(i,namesbuf,data))
+          break;
+diff -cr src/libiconv/libiconv.rc src.patched/libiconv/libiconv.rc
+*** src/libiconv/libiconv.rc	Sat Dec 26 16:05:48 2009
+--- src.patched/libiconv/libiconv.rc	Wed Jan 30 08:41:34 2013
+***************
+*** 2,7 ****
+--- 2,12 ----
+  
+  #include <winver.h>
+  
++ #define PACKAGE_VERSION_MAJOR       1
++ #define PACKAGE_VERSION_MINOR       14
++ #define PACKAGE_VERSION_SUBMINOR    0
++ #define PACKAGE_VERSION_STRING      "1.14"
++ 
+  VS_VERSION_INFO VERSIONINFO
+   FILEVERSION PACKAGE_VERSION_MAJOR,PACKAGE_VERSION_MINOR,PACKAGE_VERSION_SUBMINOR,0
+   PRODUCTVERSION PACKAGE_VERSION_MAJOR,PACKAGE_VERSION_MINOR,PACKAGE_VERSION_SUBMINOR,0
+diff -cr src/libiconv/localcharset.c src.patched/libiconv/localcharset.c
+*** src/libiconv/localcharset.c	Mon Feb 28 22:43:35 2011
+--- src.patched/libiconv/localcharset.c	Wed Jan 30 08:41:34 2013
+***************
+*** 74,82 ****
+  #endif
+  
+  /* Get LIBDIR.  */
+! #ifndef LIBDIR
+! # include "configmake.h"
+! #endif
+  
+  /* Define O_NOFOLLOW to 0 on platforms where it does not exist.  */
+  #ifndef O_NOFOLLOW
+--- 74,82 ----
+  #endif
+  
+  /* Get LIBDIR.  */
+! // #ifndef LIBDIR
+! // # include "configmake.h"
+! // #endif
+  
+  /* Define O_NOFOLLOW to 0 on platforms where it does not exist.  */
+  #ifndef O_NOFOLLOW
+diff -cr src/libiconv/localcharset.h src.patched/libiconv/localcharset.h
+*** src/libiconv/localcharset.h	Sun Aug  7 17:49:20 2011
+--- src.patched/libiconv/localcharset.h	Wed Jan 30 08:41:34 2013
+***************
+*** 20,29 ****
+  #ifndef _LOCALCHARSET_H
+  #define _LOCALCHARSET_H
+  
+! #if @HAVE_VISIBILITY@ && BUILDING_LIBCHARSET
+! #define LIBCHARSET_DLL_EXPORTED __attribute__((__visibility__("default")))
+! #else
+  #define LIBCHARSET_DLL_EXPORTED
+  #endif
+  
+  
+--- 20,31 ----
+  #ifndef _LOCALCHARSET_H
+  #define _LOCALCHARSET_H
+  
+! #ifdef BUILDING_LIBCHARSET
+! #define LIBCHARSET_DLL_EXPORTED __declspec(dllexport)
+! #elif USING_STATIC_LIBICONV
+  #define LIBCHARSET_DLL_EXPORTED
++ #else
++ #define LIBCHARSET_DLL_EXPORTED __declspec(dllimport)
+  #endif
+  
+  

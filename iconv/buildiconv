@@ -1,0 +1,37 @@
+#! /bin/sh
+
+gzip -dc libiconv-1.14.tar.gz | tar xf -
+
+ICONV=./libiconv-1.14
+BASE=./libiconv
+SRC=$BASE/src
+
+mkdir $BASE
+mkdir $SRC
+mkdir $SRC/libiconv
+mkdir $SRC/include
+
+cp $ICONV/lib/relocatable.h $SRC/libiconv/relocatable.h
+cp $ICONV/lib/relocatable.c $SRC/libiconv/relocatable.c
+cp $ICONV/lib/iconv.c       $SRC/libiconv/iconv.c
+  
+cp $ICONV/libcharset/lib/localcharset.c              $SRC/libiconv/localcharset.c
+cp $ICONV/libcharset/include/localcharset.h.build.in $SRC/libiconv/localcharset.h
+cp $ICONV/windows/libiconv.rc                        $SRC/libiconv/libiconv.rc
+  
+cp $ICONV/include/iconv.h.build.in  $SRC/include/iconv.h
+cp $ICONV/config.h.in               $SRC/include/config.h
+cp $ICONV/lib/*.h                   $SRC/include
+cp $ICONV/lib/*.def                 $SRC/include
+
+rm -dfr $ICONV
+
+cp patch.diff     $BASE
+cp lakefile       $BASE
+cp lakeconfig.lua $BASE
+
+cd $BASE
+
+patch -p0 <patch.diff
+lake dll
+lake lib

@@ -1,0 +1,31 @@
+PROJECT = 'libiconv'
+DYNAMIC = as_bool(DYNAMIC, false)
+
+res = wresource.group{
+  base = J('src', PROJECT);
+  src  = PROJECT;
+}
+
+BNUILD_PARAMS = {PROJECT,
+  base    = J('src', PROJECT),
+  src     = '*.c';
+  incdir  = J('..', 'include');
+  dynamic = DYNAMIC;
+  strip   = true,
+  defines = {
+    "BUILDING_LIBICONV";
+    "BUILDING_LIBCHARSET";
+    "WINDOWS";"_WIN32";
+    "NDEBUG";
+  };
+  compile_deps = res;
+  deps = res;
+}
+
+static_lib = c.library(BNUILD_PARAMS)
+
+BNUILD_PARAMS.defines = L( BNUILD_PARAMS.defines,"_WINDLL", "_USRDLL" )
+shared_lib = c.shared(BNUILD_PARAMS)
+
+target('dll', shared_lib)
+target('lib', static_lib)

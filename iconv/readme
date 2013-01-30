@@ -1,0 +1,2 @@
+Copy libiconv-1.14.tar.gz to this directory and run buildiconv from mingw shell
+lakefile tested on gcc/vc2010/vc2008
