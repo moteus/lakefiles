@@ -1,0 +1,61 @@
+-- http://ittner.github.com/lua-iconv
+
+PROJECT = 'iconv'
+
+if LUA_VER == '5.2' then
+  LUA_NEED = 'lua52'
+  LUA_DIR = ENV.LUA_DIR_5_2 or ENV.LUA_DIR
+  LUA_RUNNER = 'lua52'
+else
+  LUA_NEED = 'lua51'
+  LUA_DIR = ENV.LUA_DIR
+  LUA_RUNNER = 'lua'
+end
+
+ROOT    = ROOT or J(LUA_DIR, 'libs', PROJECT)
+LUADIR  = LUADIR or J(ROOT, 'share')
+LIBDIR  = LIBDIR or J(ROOT, 'share')
+DYNAMIC = as_bool(DYNAMIC, false)
+WINVER  = IF(WINDOWS, WINVER or '501', '')
+
+LIB_POSTFIX = ''
+if MSVC then LIB_POSTFIX = '_vc' .. vc_version() .. '_' .. IF(DYNAMIC, 'md', 'mt') end
+
+ICONV_DIR = J(ENV.CPPLIB_DIR, 'iconv', '1.14')
+lake.define_need('iconv', function()
+  return {
+    incdir = J(ICONV_DIR, 'include');
+    libdir = J(ICONV_DIR, 'static');
+    libs   = {'libiconv' .. LIB_POSTFIX};
+  }
+end)
+
+DEFINES = L{
+  IF(DEBUG, {'_DEBUG', 'DEBUG'},'NDEBUG');
+  IF(WINDOWS,{'WIN32','_WIN32','_WINDOWS','WINDOWS'});
+  IF(WINDOWS,'_WIN32_WINNT=0x0' .. WINVER);
+  IF(MSVC, '_CRT_SECURE_NO_WARNINGS');
+  'USING_STATIC_LIBICONV';
+}
+
+iconv = c.shared{PROJECT,
+  base = '.';
+  src  = 'luaiconv.c';
+  defines = DEFINES;
+  dynamic = DYNAMIC;
+  needs = {LUA_NEED;'iconv'};
+  libflags = IF(MSVC, '/EXPORT:luaopen_'..PROJECT)
+}
+target(PROJECT, iconv)
+
+install = target('install', {
+  file.group{odir = LIBDIR; src = iconv};
+  -- file.group{odir=J(ROOT, 'doc'), src = J('doc','*'), recurse=true};
+  file.group{odir=J(ROOT, 'test'), src = {'test_iconv.lua'}};
+})
+
+target('test', install, function()
+  run_test('test_iconv.lua')
+end)
+
+target('build', iconv)
