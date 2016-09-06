@@ -18,6 +18,7 @@ BNUILD_PARAMS = {PROJECT,
     "WINDOWS";"_WIN32";
     "NDEBUG";
   };
+  flags  = IF(MSVC, {'/wd4311'});
   compile_deps = res;
   deps = res;
 }
