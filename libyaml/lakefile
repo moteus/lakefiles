@@ -1,0 +1,53 @@
+LIB_NAME = 'libyaml'
+
+CC_VER = lake.compiler_version().MAJOR
+
+build_mode = IF(as_bool(SHARED), c.shared, c.library)
+
+DEFINES  = {
+  'WINVER=0x0501';
+  'WIN32';
+  '_WINDOWS';
+  'NDEBUG';
+  'YAML_DECLARE_EXPORT';
+  'HAVE_CONFIG_H';
+};
+
+libyaml = build_mode{LIB_NAME,
+  base     = 'src';
+  src      = '*.c';
+  defines  = L(DEFINES);
+  dynamic  = true;
+  strip    = true;
+  incdir   = {'../win32', '../include'};
+}
+
+libyaml_name = path.splitext(path.basename(libyaml.target))
+libyaml_path = path.dirname(libyaml.target)
+
+tests = {
+ 'example-deconstructor', 'example-deconstructor-alt', 'example-reformatter',
+ 'example-reformatter-alt', 'run-dumper', 'run-emitter', 'run-loader',
+ 'run-parser', 'run-scanner', 'test-reader', 'test-version',
+}
+
+t = {} for _, name in ipairs(tests) do
+  t[#t+1] = c.program{name,
+    base         = 'tests';
+    libs         = libyaml_name;
+    defines      = L(DEFINES);
+    dynamic      = true;
+    strip        = true;
+    incdir       = {'../win32', '../include'};
+    libdir       = {libyaml_path};
+    compile_deps = libyaml;
+    cflags       = IF(MSVC and CC_VER >= 19 , {'/Wv:18'});
+  }
+end
+
+target('tests', t)
+
+target('build', libyaml)
+
+default('build')
+
